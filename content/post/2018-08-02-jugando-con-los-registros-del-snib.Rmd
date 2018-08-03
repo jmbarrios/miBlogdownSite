@@ -1,0 +1,186 @@
+---
+title: Jugando con los registros del SNIB
+author: Juan M Barrios
+date: '2018-08-02'
+slug: jugando-con-los-registros-del-snib
+categories:
+  - SNIB
+  - R
+  - CONABIO
+tags: ["sf"]
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+library(magrittr)
+library(here)
+library(dplyr)
+library(readr)
+library(sf)
+library(ggplot2)
+library(maps)
+```
+
+El Sistema Nacional de Información sobre Biodiversidad de México (SNIB) es una 
+base de datos con registro de ocurrencias biológicas que ha recopilado la 
+Comisión Nacional para el Uso y Conocimiento de la Biodiversidad (CONABIO) 
+desde su creación. Esta colección integra gran parte de las colecciones 
+biológicas de México. 
+
+Hay dos maneras principales de accesar a la información contenida en el SNIB,
+la primera es descargando los datos desde el [Geoportal] de CONABIO y la 
+segunda desde el la página del [SNIB](http://www.snib.mx/). Un buen consejo 
+es siempre usar el método de descarga desde el sitio del [Geoportal], estos 
+los encontramos en Biodiversidad → Ejemplares y ahí escogemos el *grupo* 
+biológico en el que estemos interesados en este *post* usaremos los registros 
+de [mamíferos](http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip) y el 
+mapa de [áreas naturales protegidas de 
+México](http://www.conabio.gob.mx/informacion/gis/maps/geo/anpmx.zip) el cual 
+también descargamos del [Geoportal]. 
+
+En el archivo `mamiferos.201807.csv.zip` se tienen los siguientes archivos:
+
+```{r echo=FALSE}
+fs::dir_map(here::here("data", "mamiferos.201807.csv"), 
+            function(x) {
+              stringr::str_replace(x, here::here("data"), ".")
+            }) %>% 
+  as.character() %>% 
+  fs::as_fs_path()
+```
+
+Los archivos `.html` y `.xml` corresponden a archivos de metadatos. Los 
+archivos `mamiferosutm*.csv` son lo archivos de registros correspondientes 
+a las regiones UTM nombradas. Mientras que `mamiferosca.csv` y 
+`mamiferoseua.csv` corresponden a registros en Centroamérica y Estados 
+Unidos de América. El archivo que `mamiferoslicencia.csv` contiene la 
+licencia de uso de cada datos según el proyecto asociado. Y el archivo
+que usaremos es el `mamiferos.csv` el cual es el concentrado de todos
+los registros, aunque muchas veces es demasiado grande para ser trabajado
+en un computadora (depende de la cantidad de memoria RAM de tu equipo).
+
+En todo momento usaremos las bibliotecas: `dplyr`, `readr`, `sf`, `maps`, 
+`ggplot2` y `magrittr`. 
+
+```{r}
+mammals_data <- read_csv(file = here("data", 
+                                     "mamiferos.201807.csv", 
+                                     "mamiferos.csv"),
+                         progress = FALSE)
+
+mammals_data %<>% select(idejemplar,
+                        reinovalido,
+                        phylumdivisionvalido,
+                        clasevalida,
+                        ordenvalido,
+                        familiavalida,
+                        generovalido,
+                        especievalida,
+                        diacolecta,
+                        mescolecta,
+                        aniocolecta,
+                        probablelocnodecampo,
+                        longitud,
+                        latitud, 
+                        estadomapa) %>%
+  st_as_sf(coords = c("longitud", "latitud"),
+           crs = 4326)
+
+mammals_data %>% head()
+```
+
+Lo que hemos conseguido al hacer esta lectura es tener un `data.frame` con una
+columna especial que tiene la geometría del registro, en este caso el punto 
+asociado a la ocurrencia de un taxón, ahora bien no hemos considerado todas las
+columnas de los registros si no solo algunas (para una explicación de que dato
+viene en cada columna se puede consultar el 
+[_Diccionario de datos de Ejemplares Geoportal_](http://www.snib.mx/documents/docsnib.html)
+). 
+
+Ahora podemos resolver preguntas básicas a los datos como, cual es la 
+representación de las familias del orden _Rodentia_ en lo datos.
+
+```{r}
+mammals_data %>% 
+  filter(ordenvalido == "Rodentia") %>%
+  ggplot(aes(familiavalida)) + 
+    geom_bar(position = position_stack(reverse = TRUE)) +
+    coord_flip() + 
+    theme_minimal() +
+    labs(x = "Familia", y = "Conteos")
+```
+
+En general podríamos trabajar muchas más preguntas de este estilo pero gracias
+a que  agregamos la geometría asociada a los datos también podemos ocuparla 
+para hacer cosas más interesantes. 
+
+```{r}
+mx_border <- st_as_sf(map('world', 
+                          regions = "Mexico", 
+                          plot = FALSE, 
+                          fill = TRUE))
+
+mx_national_parks <- st_read(here("data", "anpmx", "anpmx.shp")) %>%
+  select(ID_ANP,
+         NOMBRE, 
+         CAT_DECRET,
+         REGION) %>%
+  filter(CAT_DECRET == "PN")
+
+ggplot() +
+  geom_sf(data = mx_border) +
+  geom_sf(data = mx_national_parks, 
+          aes(fill = ID_ANP), 
+          show.legend = FALSE) + 
+  theme_minimal()
+```
+
+Vamos a restringir nuestra atención al parque nacional 
+_Cumbres del Ajusco_. Este parque nacional se encuentra en la CDMX
+y en particular existe un conejo endemico el _Teporingo_. Vamos a explorar
+los registro de mamíferos del este parque nacional que existan en los datos
+del SNIB. 
+
+```{r}
+ajusco_national_park <- mx_national_parks %>%
+  filter(NOMBRE == "Cumbres del Ajusco") %>%
+  st_geometry() %>%
+  st_transform(crs = 6369)
+
+mammals_data <- mammals_data %>%
+  st_transform(crs = 6369)
+
+snib_data_ajusco <- mammals_data %>%
+  filter(lengths(st_within(., ajusco_national_park)) > 0)
+
+ggplot() +
+  geom_sf(data = ajusco_national_park) +
+  geom_sf(data = snib_data_ajusco, aes(colour = idejemplar), show.legend = FALSE) +
+  theme_bw()
+```
+
+Además tenemos los siguientes órdenes representados,
+
+```{r}
+snib_data_ajusco %>% 
+  st_set_geometry(NULL) %>%
+  group_by(ordenvalido) %>% 
+  count()
+
+snib_data_ajusco %>% st_set_geometry(NULL) %>% filter(ordenvalido == 'Lagomorpha')
+```
+
+y en particular de los 
+`r snib_data_ajusco %>% st_set_geometry(NULL) %>% filter(ordenvalido == 'Lagomorpha') %>% count()`
+ejemplares de _Lagomorpha_ se tiene que 
+`r snib_data_ajusco %>% st_set_geometry(NULL) %>% filter(especievalida == "Romerolagus diazi") %>% count()` son registros del teporingo.
+
+```{r}
+snib_data_ajusco %>%  
+  st_transform(crs = 4326) %>%
+  filter(especievalida == "Romerolagus diazi") %>%
+  select(idejemplar, ordenvalido, especievalida)
+```
+
+
+[Geoportal]: http://geoportal.conabio.gob.mx/

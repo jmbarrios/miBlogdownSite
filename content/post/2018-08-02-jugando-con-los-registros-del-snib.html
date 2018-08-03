@@ -1,0 +1,243 @@
+---
+title: Jugando con los registros del SNIB
+author: Juan M Barrios
+date: '2018-08-02'
+slug: jugando-con-los-registros-del-snib
+categories:
+  - SNIB
+  - R
+  - CONABIO
+tags: ["sf"]
+---
+
+
+
+<p>El Sistema Nacional de Información sobre Biodiversidad de México (SNIB) es una
+base de datos con registro de ocurrencias biológicas que ha recopilado la
+Comisión Nacional para el Uso y Conocimiento de la Biodiversidad (CONABIO)
+desde su creación. Esta colección integra gran parte de las colecciones
+biológicas de México.</p>
+<p>Hay dos maneras principales de accesar a la información contenida en el SNIB,
+la primera es descargando los datos desde el <a href="http://geoportal.conabio.gob.mx/">Geoportal</a> de CONABIO y la
+segunda desde el la página del <a href="http://www.snib.mx/">SNIB</a>. Un buen consejo
+es siempre usar el método de descarga desde el sitio del <a href="http://geoportal.conabio.gob.mx/">Geoportal</a>, estos
+los encontramos en Biodiversidad → Ejemplares y ahí escogemos el <em>grupo</em>
+biológico en el que estemos interesados en este <em>post</em> usaremos los registros
+de <a href="http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip">mamíferos</a> y el
+mapa de <a href="http://www.conabio.gob.mx/informacion/gis/maps/geo/anpmx.zip">áreas naturales protegidas de
+México</a> el cual
+también descargamos del <a href="http://geoportal.conabio.gob.mx/">Geoportal</a>.</p>
+<p>En el archivo <code>mamiferos.201807.csv.zip</code> se tienen los siguientes archivos:</p>
+<pre><code>## ./mamiferos.201807.csv/README.txt
+## ./mamiferos.201807.csv/mamiferos.csv
+## ./mamiferos.201807.csv/mamiferos.html
+## ./mamiferos.201807.csv/mamiferos.png
+## ./mamiferos.201807.csv/mamiferos.xml
+## ./mamiferos.201807.csv/mamiferos_s.png
+## ./mamiferos.201807.csv/mamiferosca.csv
+## ./mamiferos.201807.csv/mamiferoseua.csv
+## ./mamiferos.201807.csv/mamiferoslicencia.csv
+## ./mamiferos.201807.csv/mamiferosutm11.csv
+## ./mamiferos.201807.csv/mamiferosutm12.csv
+## ./mamiferos.201807.csv/mamiferosutm13.csv
+## ./mamiferos.201807.csv/mamiferosutm14a.csv
+## ./mamiferos.201807.csv/mamiferosutm14b.csv
+## ./mamiferos.201807.csv/mamiferosutm15.csv
+## ./mamiferos.201807.csv/mamiferosutm16.csv</code></pre>
+<p>Los archivos <code>.html</code> y <code>.xml</code> corresponden a archivos de metadatos. Los
+archivos <code>mamiferosutm*.csv</code> son lo archivos de registros correspondientes
+a las regiones UTM nombradas. Mientras que <code>mamiferosca.csv</code> y
+<code>mamiferoseua.csv</code> corresponden a registros en Centroamérica y Estados
+Unidos de América. El archivo que <code>mamiferoslicencia.csv</code> contiene la
+licencia de uso de cada datos según el proyecto asociado. Y el archivo
+que usaremos es el <code>mamiferos.csv</code> el cual es el concentrado de todos
+los registros, aunque muchas veces es demasiado grande para ser trabajado
+en un computadora (depende de la cantidad de memoria RAM de tu equipo).</p>
+<p>En todo momento usaremos las bibliotecas: <code>dplyr</code>, <code>readr</code>, <code>sf</code>, <code>maps</code>,
+<code>ggplot2</code> y <code>magrittr</code>.</p>
+<pre class="r"><code>mammals_data &lt;- read_csv(file = here(&quot;data&quot;, 
+                                     &quot;mamiferos.201807.csv&quot;, 
+                                     &quot;mamiferos.csv&quot;),
+                         progress = FALSE)
+## Parsed with column specification:
+## cols(
+##   .default = col_character(),
+##   longitud = col_double(),
+##   latitud = col_double(),
+##   ultimafechaactualizacion = col_date(format = &quot;&quot;),
+##   altitudmapa = col_integer(),
+##   diadeterminacion = col_integer(),
+##   mesdeterminacion = col_integer(),
+##   aniodeterminacion = col_integer(),
+##   diacolecta = col_integer(),
+##   mescolecta = col_integer(),
+##   aniocolecta = col_integer()
+## )
+## See spec(...) for full column specifications.
+## Warning in rbind(names(probs), probs_f): number of columns of result is not
+## a multiple of vector length (arg 1)
+## Warning: 16799 parsing failures.
+## row # A tibble: 5 x 5 col     row col         expected   actual file                                 expected   &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;                                actual 1  2362 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… file 2  2363 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… row 3  2364 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… col 4  2365 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… expected 5  2571 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS…
+## ... ................. ... .......................................................................... ........ .......................................................................... ...... .......................................................................... .... .......................................................................... ... .......................................................................... ... .......................................................................... ........ ..........................................................................
+## See problems(...) for more details.
+
+mammals_data %&lt;&gt;% select(idejemplar,
+                        reinovalido,
+                        phylumdivisionvalido,
+                        clasevalida,
+                        ordenvalido,
+                        familiavalida,
+                        generovalido,
+                        especievalida,
+                        diacolecta,
+                        mescolecta,
+                        aniocolecta,
+                        probablelocnodecampo,
+                        longitud,
+                        latitud, 
+                        estadomapa) %&gt;%
+  st_as_sf(coords = c(&quot;longitud&quot;, &quot;latitud&quot;),
+           crs = 4326)
+
+mammals_data %&gt;% head()
+## Simple feature collection with 6 features and 13 fields
+## geometry type:  POINT
+## dimension:      XY
+## bbox:           xmin: -93.81914 ymin: 15.65528 xmax: -91.11667 ymax: 16.71944
+## epsg (SRID):    4326
+## proj4string:    +proj=longlat +datum=WGS84 +no_defs
+## # A tibble: 6 x 14
+##   idejemplar         reinovalido phylumdivisionva… clasevalida ordenvalido
+##   &lt;chr&gt;              &lt;chr&gt;       &lt;chr&gt;             &lt;chr&gt;       &lt;chr&gt;      
+## 1 47289ba599f987513… Animalia    Chordata          Mammalia    Chiroptera 
+## 2 bd94ea2dd0ea46e05… Animalia    Chordata          Mammalia    Chiroptera 
+## 3 f363a73c42a16767d… Animalia    Chordata          Mammalia    Rodentia   
+## 4 3d279e1f803665450… Animalia    Chordata          Mammalia    Primates   
+## 5 4505a17f94f13b016… &lt;NA&gt;        &lt;NA&gt;              &lt;NA&gt;        &lt;NA&gt;       
+## 6 dfe4724c85b3304fc… Animalia    Chordata          Mammalia    Rodentia   
+## # ... with 9 more variables: familiavalida &lt;chr&gt;, generovalido &lt;chr&gt;,
+## #   especievalida &lt;chr&gt;, diacolecta &lt;int&gt;, mescolecta &lt;int&gt;,
+## #   aniocolecta &lt;int&gt;, probablelocnodecampo &lt;chr&gt;, estadomapa &lt;chr&gt;,
+## #   geometry &lt;POINT [°]&gt;</code></pre>
+<p>Lo que hemos conseguido al hacer esta lectura es tener un <code>data.frame</code> con una
+columna especial que tiene la geometría del registro, en este caso el punto
+asociado a la ocurrencia de un taxón, ahora bien no hemos considerado todas las
+columnas de los registros si no solo algunas (para una explicación de que dato
+viene en cada columna se puede consultar el
+<a href="http://www.snib.mx/documents/docsnib.html"><em>Diccionario de datos de Ejemplares Geoportal</em></a>
+).</p>
+<p>Ahora podemos resolver preguntas básicas a los datos como, cual es la
+representación de las familias del orden <em>Rodentia</em> en lo datos.</p>
+<pre class="r"><code>mammals_data %&gt;% 
+  filter(ordenvalido == &quot;Rodentia&quot;) %&gt;%
+  ggplot(aes(familiavalida)) + 
+    geom_bar(position = position_stack(reverse = TRUE)) +
+    coord_flip() + 
+    theme_minimal() +
+    labs(x = &quot;Familia&quot;, y = &quot;Conteos&quot;)</code></pre>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>En general podríamos trabajar muchas más preguntas de este estilo pero gracias
+a que agregamos la geometría asociada a los datos también podemos ocuparla
+para hacer cosas más interesantes.</p>
+<pre class="r"><code>mx_border &lt;- st_as_sf(map(&#39;world&#39;, 
+                          regions = &quot;Mexico&quot;, 
+                          plot = FALSE, 
+                          fill = TRUE))
+
+mx_national_parks &lt;- st_read(here(&quot;data&quot;, &quot;anpmx&quot;, &quot;anpmx.shp&quot;)) %&gt;%
+  select(ID_ANP,
+         NOMBRE, 
+         CAT_DECRET,
+         REGION) %&gt;%
+  filter(CAT_DECRET == &quot;PN&quot;)
+## Reading layer `anpmx&#39; from data source `/home/jbarrios/Documents/blogdownSite/data/anpmx/anpmx.shp&#39; using driver `ESRI Shapefile&#39;
+## Simple feature collection with 182 features and 19 fields
+## geometry type:  MULTIPOLYGON
+## dimension:      XY
+## bbox:           xmin: -118.6344 ymin: 11.9686 xmax: -85.39723 ymax: 32.48333
+## epsg (SRID):    4326
+## proj4string:    +proj=longlat +datum=WGS84 +no_defs
+
+ggplot() +
+  geom_sf(data = mx_border) +
+  geom_sf(data = mx_national_parks, 
+          aes(fill = ID_ANP), 
+          show.legend = FALSE) + 
+  theme_minimal()</code></pre>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Vamos a restringir nuestra atención al parque nacional
+<em>Cumbres del Ajusco</em>. Este parque nacional se encuentra en la CDMX
+y en particular existe un conejo endemico el <em>Teporingo</em>. Vamos a explorar
+los registro de mamíferos del este parque nacional que existan en los datos
+del SNIB.</p>
+<pre class="r"><code>ajusco_national_park &lt;- mx_national_parks %&gt;%
+  filter(NOMBRE == &quot;Cumbres del Ajusco&quot;) %&gt;%
+  st_geometry() %&gt;%
+  st_transform(crs = 6369)
+
+mammals_data &lt;- mammals_data %&gt;%
+  st_transform(crs = 6369)
+
+snib_data_ajusco &lt;- mammals_data %&gt;%
+  filter(lengths(st_within(., ajusco_national_park)) &gt; 0)
+
+ggplot() +
+  geom_sf(data = ajusco_national_park) +
+  geom_sf(data = snib_data_ajusco, aes(colour = idejemplar), show.legend = FALSE) +
+  theme_bw()</code></pre>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Además tenemos los siguientes órdenes representados,</p>
+<pre class="r"><code>snib_data_ajusco %&gt;% 
+  st_set_geometry(NULL) %&gt;%
+  group_by(ordenvalido) %&gt;% 
+  count()
+## # A tibble: 6 x 2
+## # Groups:   ordenvalido [6]
+##   ordenvalido      n
+##   &lt;chr&gt;        &lt;int&gt;
+## 1 Carnivora        1
+## 2 Chiroptera       2
+## 3 Cingulata        1
+## 4 Lagomorpha      13
+## 5 Rodentia        97
+## 6 Soricomorpha     3
+
+snib_data_ajusco %&gt;% st_set_geometry(NULL) %&gt;% filter(ordenvalido == &#39;Lagomorpha&#39;)
+## # A tibble: 13 x 13
+##    idejemplar        reinovalido phylumdivisionva… clasevalida ordenvalido
+##    &lt;chr&gt;             &lt;chr&gt;       &lt;chr&gt;             &lt;chr&gt;       &lt;chr&gt;      
+##  1 08498600a331c35c… Animalia    Chordata          Mammalia    Lagomorpha 
+##  2 977c83f6aa370998… Animalia    Chordata          Mammalia    Lagomorpha 
+##  3 9a08aa8e33969257… Animalia    Chordata          Mammalia    Lagomorpha 
+##  4 86a13cc9b09231ea… Animalia    Chordata          Mammalia    Lagomorpha 
+##  5 e67e021d6f825d0b… Animalia    Chordata          Mammalia    Lagomorpha 
+##  6 4ab99bc08988d336… Animalia    Chordata          Mammalia    Lagomorpha 
+##  7 88aec2fba5e02092… Animalia    Chordata          Mammalia    Lagomorpha 
+##  8 48cf20d684999edc… Animalia    Chordata          Mammalia    Lagomorpha 
+##  9 afdaa0049bea7341… Animalia    Chordata          Mammalia    Lagomorpha 
+## 10 f57a6272e8f42484… Animalia    Chordata          Mammalia    Lagomorpha 
+## 11 0c1aca0a337988ec… Animalia    Chordata          Mammalia    Lagomorpha 
+## 12 c8543b8687a8fcf7… Animalia    Chordata          Mammalia    Lagomorpha 
+## 13 ee8d6d14edcec9bb… Animalia    Chordata          Mammalia    Lagomorpha 
+## # ... with 8 more variables: familiavalida &lt;chr&gt;, generovalido &lt;chr&gt;,
+## #   especievalida &lt;chr&gt;, diacolecta &lt;int&gt;, mescolecta &lt;int&gt;,
+## #   aniocolecta &lt;int&gt;, probablelocnodecampo &lt;chr&gt;, estadomapa &lt;chr&gt;</code></pre>
+<p>y en particular de los
+13
+ejemplares de <em>Lagomorpha</em> se tiene que
+2 son registros del teporingo.</p>
+<pre class="r"><code>snib_data_ajusco %&gt;%  
+  st_transform(crs = 4326) %&gt;%
+  filter(especievalida == &quot;Romerolagus diazi&quot;) %&gt;%
+  select(idejemplar, ordenvalido, especievalida)
+## Simple feature collection with 2 features and 3 fields
+## geometry type:  POINT
+## dimension:      XY
+## bbox:           xmin: -99.25833 ymin: 19.20564 xmax: -99.25691 ymax: 19.20833
+## epsg (SRID):    4326
+## proj4string:    +proj=longlat +datum=WGS84 +no_defs
+## # A tibble: 2 x 4
+##   idejemplar            ordenvalido especievalida                 geometry
+##   &lt;chr&gt;                 &lt;chr&gt;       &lt;chr&gt;                      &lt;POINT [°]&gt;
+## 1 977c83f6aa37099818e7… Lagomorpha  Romerolagus di…   (-99.25833 19.20833)
+## 2 ee8d6d14edcec9bb6444… Lagomorpha  Romerolagus di…   (-99.25691 19.20564)</code></pre>
