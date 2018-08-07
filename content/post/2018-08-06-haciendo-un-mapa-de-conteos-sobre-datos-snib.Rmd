@@ -1,0 +1,135 @@
+---
+title: Haciendo un mapa de conteos sobre datos SNIB
+author: Juan M Barrios
+date: '2018-08-06'
+slug: haciendo-un-mapa-de-conteos-sobre-datos-snib
+categories:
+  - SNIB
+  - R
+tags:
+  - sf
+  - raster
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE)
+library(magrittr)
+library(here)
+library(dplyr)
+library(readr)
+library(sf)
+library(ggplot2)
+library(maps)
+library(raster)
+library(rasterVis)
+library(RColorBrewer)
+```
+
+En esta ocasión nuestro objetivo será el de generar un mapa de densidad de 
+ocurrencias usando los datos del [SNIB] pare esto otra vez usaremos nuestros
+datos de ejemplares de 
+[mamíferos](http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip) descargados 
+desde el [Geoportal]. 
+
+Primero generaremos un _raster_ sobre México que nos servirá como base para 
+hacer el análisis. Lo primero que vamos a hacer será obtener los datos 
+geográficos necesarios para hacer el _raster_. Un _raster_ no es mas que generar 
+una malla sobre una región de la tierra donde cada cuadrito, _pixel_, de la malla se le 
+asigna un valor. La resolución del _raster_ es el _área_ de cada cuadro, en este
+ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.
+
+```{r}
+mx_border <- st_as_sf(map('world', 
+                          regions = "Mexico", 
+                          plot = FALSE, 
+                          fill = TRUE))
+
+mx_border %>% st_crs()
+```
+
+La variable `mx_border` es un _simplefeature_ el cual no tiene proyección 
+asociada, en este caso está en coordenadas geográficas, por lo que lo 
+proyectaremos usando una proyección confrome cónica de Lambert pero definida
+para el caso de México, la [EPSG:6372](https://epsg.io/6372).
+
+```{r}
+mx_border <- mx_border %>% 
+  st_transform(crs = 6372)
+mx_border %>%
+  st_crs()
+
+mx_bbox <- mx_border %>%
+  st_bbox()
+```
+
+En particular notemos que en la nueva proyección se tiene que la unidad de 
+proyección es en metros.
+
+```{r}
+mx_proj <- mx_border %>% 
+  st_crs() %$% 
+  proj4string
+ANALYSIS_RESOLUTION <- 10000 # 10,000m = 10Km 
+
+ncol <- ceiling((mx_bbox[["xmax"]] - mx_bbox[["xmin"]])/ANALYSIS_RESOLUTION)
+nrow <- ceiling((mx_bbox[["ymax"]] - mx_bbox[["ymin"]])/ANALYSIS_RESOLUTION)
+
+mx_raster_bbox <- raster(
+  ncol = ncol, 
+  nrow = nrow, 
+  xmn = mx_bbox[["xmin"]], 
+  xmx = mx_bbox[["xmax"]], 
+  ymn = mx_bbox[["ymin"]], 
+  ymx = mx_bbox[["ymax"]]
+) 
+projection(mx_raster_bbox) <- mx_proj
+```
+
+La variable `mx_raster_bbox` es un raster, sin valores para cada _pixel_ pero
+con la resolución que queremos para nuestro análisis. Ahora lo que haremos es 
+usar un una función la cual asigna un valor si la geometría intersecta un 
+_pixel_, en este caso los registros del [SNIB], esta función es 
+[`raster::rasterize`](https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/rasterize),
+además si un o más geometrias tocan un pixel usa una función para agrupar los 
+valores, en este caso usaremos `count`
+
+```{r}
+mammals_data <- read_csv(file = here("data", 
+                                     "mamiferos.201807.csv", 
+                                     "mamiferos.csv"),
+                         progress = FALSE) %>%
+  dplyr::select(idejemplar, longitud, latitud) %>%
+  st_as_sf(coords = c("longitud", "latitud"),
+           crs = 4326)
+mammals_data %<>% st_transform(crs = 6372)
+
+ptm <- proc.time()
+mx_raster <- rasterize(as(mammals_data, "Spatial"), 
+                       mx_raster_bbox, 
+                       field = 1, 
+                       fun = "count")
+proc.time() - ptm
+```
+
+Por útimo graficaremos el resultado.
+
+```{r}
+colr <- colorRampPalette(brewer.pal(41, 'Spectral'))
+
+levelplot(mx_raster, 
+          margin = FALSE,                       
+          colorkey = list(
+            space = 'bottom',                   
+            labels = list(at = 0:40, font = 4)  
+          ),    
+          par.settings=list(
+            axis.line=list(col='transparent') 
+          ),
+          scales=list(draw=FALSE),            
+          col.regions=colr,                   
+          at=seq(0, 40, len=40)) +           
+  layer(sp.polygons(as(mx_border, "Spatial"), lwd = 1.5))    
+```
+
+[SNIB]: http://www.snib.mx/
+[Geoportal]: http://geoportal.conabio.gob.mx/
