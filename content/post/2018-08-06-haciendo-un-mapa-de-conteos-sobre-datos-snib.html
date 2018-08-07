@@ -1,0 +1,132 @@
+---
+title: Haciendo un mapa de conteos sobre datos SNIB
+author: Juan M Barrios
+date: '2018-08-06'
+slug: haciendo-un-mapa-de-conteos-sobre-datos-snib
+categories:
+  - SNIB
+  - R
+tags:
+  - sf
+  - raster
+---
+
+
+
+<p>En esta ocasión nuestro objetivo será el de generar un mapa de densidad de
+ocurrencias usando los datos del <a href="http://www.snib.mx/">SNIB</a> pare esto otra vez usaremos nuestros
+datos de ejemplares de
+<a href="http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip">mamíferos</a> descargados
+desde el <a href="http://geoportal.conabio.gob.mx/">Geoportal</a>.</p>
+<p>Primero generaremos un <em>raster</em> sobre México que nos servirá como base para
+hacer el análisis. Lo primero que vamos a hacer será obtener los datos
+geográficos necesarios para hacer el <em>raster</em>. Un <em>raster</em> no es mas que generar
+una malla sobre una región de la tierra donde cada cuadrito, <em>pixel</em>, de la malla se le
+asigna un valor. La resolución del <em>raster</em> es el <em>área</em> de cada cuadro, en este
+ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.</p>
+<pre class="r"><code>mx_border &lt;- st_as_sf(map(&#39;world&#39;, 
+                          regions = &quot;Mexico&quot;, 
+                          plot = FALSE, 
+                          fill = TRUE))
+
+mx_border %&gt;% st_crs()
+## Coordinate Reference System:
+##   EPSG: 4326 
+##   proj4string: &quot;+proj=longlat +datum=WGS84 +no_defs&quot;</code></pre>
+<p>La variable <code>mx_border</code> es un <em>simplefeature</em> el cual no tiene proyección
+asociada, en este caso está en coordenadas geográficas, por lo que lo
+proyectaremos usando una proyección confrome cónica de Lambert pero definida
+para el caso de México, la <a href="https://epsg.io/6372">EPSG:6372</a>.</p>
+<pre class="r"><code>mx_border &lt;- mx_border %&gt;% 
+  st_transform(crs = 6372)
+mx_border %&gt;%
+  st_crs()
+## Coordinate Reference System:
+##   EPSG: 6372 
+##   proj4string: &quot;+proj=lcc +lat_1=17.5 +lat_2=29.5 +lat_0=12 +lon_0=-102 +x_0=2500000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs&quot;
+
+mx_bbox &lt;- mx_border %&gt;%
+  st_bbox()</code></pre>
+<p>En particular notemos que en la nueva proyección se tiene que la unidad de
+proyección es en metros.</p>
+<pre class="r"><code>mx_proj &lt;- mx_border %&gt;% 
+  st_crs() %$% 
+  proj4string
+ANALYSIS_RESOLUTION &lt;- 10000 # 10,000m = 10Km 
+
+ncol &lt;- ceiling((mx_bbox[[&quot;xmax&quot;]] - mx_bbox[[&quot;xmin&quot;]])/ANALYSIS_RESOLUTION)
+nrow &lt;- ceiling((mx_bbox[[&quot;ymax&quot;]] - mx_bbox[[&quot;ymin&quot;]])/ANALYSIS_RESOLUTION)
+
+mx_raster_bbox &lt;- raster(
+  ncol = ncol, 
+  nrow = nrow, 
+  xmn = mx_bbox[[&quot;xmin&quot;]], 
+  xmx = mx_bbox[[&quot;xmax&quot;]], 
+  ymn = mx_bbox[[&quot;ymin&quot;]], 
+  ymx = mx_bbox[[&quot;ymax&quot;]]
+) 
+projection(mx_raster_bbox) &lt;- mx_proj</code></pre>
+<p>La variable <code>mx_raster_bbox</code> es un raster, sin valores para cada <em>pixel</em> pero
+con la resolución que queremos para nuestro análisis. Ahora lo que haremos es
+usar un una función la cual asigna un valor si la geometría intersecta un
+<em>pixel</em>, en este caso los registros del <a href="http://www.snib.mx/">SNIB</a>, esta función es
+<a href="https://www.rdocumentation.org/packages/raster/versions/2.6-7/topics/rasterize"><code>raster::rasterize</code></a>,
+además si un o más geometrias tocan un pixel usa una función para agrupar los
+valores, en este caso usaremos <code>count</code></p>
+<pre class="r"><code>mammals_data &lt;- read_csv(file = here(&quot;data&quot;, 
+                                     &quot;mamiferos.201807.csv&quot;, 
+                                     &quot;mamiferos.csv&quot;),
+                         progress = FALSE) %&gt;%
+  dplyr::select(idejemplar, longitud, latitud) %&gt;%
+  st_as_sf(coords = c(&quot;longitud&quot;, &quot;latitud&quot;),
+           crs = 4326)
+## Parsed with column specification:
+## cols(
+##   .default = col_character(),
+##   longitud = col_double(),
+##   latitud = col_double(),
+##   ultimafechaactualizacion = col_date(format = &quot;&quot;),
+##   altitudmapa = col_integer(),
+##   diadeterminacion = col_integer(),
+##   mesdeterminacion = col_integer(),
+##   aniodeterminacion = col_integer(),
+##   diacolecta = col_integer(),
+##   mescolecta = col_integer(),
+##   aniocolecta = col_integer()
+## )
+## See spec(...) for full column specifications.
+## Warning in rbind(names(probs), probs_f): number of columns of result is not
+## a multiple of vector length (arg 1)
+## Warning: 16799 parsing failures.
+## row # A tibble: 5 x 5 col     row col         expected   actual file                                 expected   &lt;int&gt; &lt;chr&gt;       &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;                                actual 1  2362 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… file 2  2363 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… row 3  2364 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… col 4  2365 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS… expected 5  2571 altitudmapa an integer (null) &#39;/home/jbarrios/Documents/blogdownS…
+## ... ................. ... .......................................................................... ........ .......................................................................... ...... .......................................................................... .... .......................................................................... ... .......................................................................... ... .......................................................................... ........ ..........................................................................
+## See problems(...) for more details.
+mammals_data %&lt;&gt;% st_transform(crs = 6372)
+
+ptm &lt;- proc.time()
+mx_raster &lt;- rasterize(as(mammals_data, &quot;Spatial&quot;), 
+                       mx_raster_bbox, 
+                       field = 1, 
+                       fun = &quot;count&quot;)
+proc.time() - ptm
+##    user  system elapsed 
+##   5.862   0.000   5.872</code></pre>
+<p>Por útimo graficaremos el resultado.</p>
+<pre class="r"><code>colr &lt;- colorRampPalette(brewer.pal(41, &#39;Spectral&#39;))
+## Warning in brewer.pal(41, &quot;Spectral&quot;): n too large, allowed maximum for palette Spectral is 11
+## Returning the palette you asked for with that many colors
+
+levelplot(mx_raster, 
+          margin = FALSE,                       
+          colorkey = list(
+            space = &#39;bottom&#39;,                   
+            labels = list(at = 0:40, font = 4)  
+          ),    
+          par.settings=list(
+            axis.line=list(col=&#39;transparent&#39;) 
+          ),
+          scales=list(draw=FALSE),            
+          col.regions=colr,                   
+          at=seq(0, 40, len=40)) +           
+  layer(sp.polygons(as(mx_border, &quot;Spatial&quot;), lwd = 1.5))    </code></pre>
+<p><img src="/post/2018-08-06-haciendo-un-mapa-de-conteos-sobre-datos-snib_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
