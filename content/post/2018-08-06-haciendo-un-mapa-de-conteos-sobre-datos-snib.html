@@ -20,7 +20,7 @@ datos de ejemplares de
 desde el <a href="http://geoportal.conabio.gob.mx/">Geoportal</a>.</p>
 <p>Primero generaremos un <em>raster</em> sobre México que nos servirá como base para
 hacer el análisis. Para esto tenemos que obtener los datos
-geográficos necesarios para hacer dicho <em>raster</em>. Un <em>raster</em> consiste en generar
+geográficos necesarios para hacer dicho <em>raster</em>. Un <em>raster</em> es
 una malla sobre una región de la tierra donde cada cuadrito, <em>pixel</em>, de la malla se le
 asigna un valor. La resolución del <em>raster</em> es el <em>área</em> de cada cuadro, en este
 ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.</p>
@@ -146,7 +146,7 @@ mx_raster &lt;- rasterize(as(mammals_data, &quot;Spatial&quot;),
                        fun = &quot;count&quot;)
 proc.time() - ptm
 ##    user  system elapsed 
-##   6.594   0.000   6.619</code></pre>
+##   5.831   0.001   5.878</code></pre>
 <p>Por útimo graficaremos el resultado.</p>
 <pre class="r"><code>colr &lt;- colorRampPalette(brewer.pal(41, &#39;Spectral&#39;))
 ## Warning in brewer.pal(41, &quot;Spectral&quot;): n too large, allowed maximum for palette Spectral is 11

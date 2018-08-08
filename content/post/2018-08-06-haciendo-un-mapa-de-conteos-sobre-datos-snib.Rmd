@@ -24,7 +24,7 @@ desde el [Geoportal].
 
 Primero generaremos un _raster_ sobre México que nos servirá como base para 
 hacer el análisis. Para esto tenemos que obtener los datos 
-geográficos necesarios para hacer dicho _raster_. Un _raster_ consiste en generar 
+geográficos necesarios para hacer dicho _raster_.  Un _raster_ es 
 una malla sobre una región de la tierra donde cada cuadrito, _pixel_, de la malla se le 
 asigna un valor. La resolución del _raster_ es el _área_ de cada cuadro, en este
 ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.
