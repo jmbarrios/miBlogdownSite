@@ -159,10 +159,10 @@ representación de las familias del orden <em>Rodentia</em> en lo datos.</p>
 <p>En general podríamos trabajar muchas más preguntas de este estilo pero gracias
 a que agregamos la geometría asociada a los datos también podemos ocuparla
 para hacer cosas más interesantes.</p>
-<pre class="r"><code>mx_border &lt;- st_as_sf(map(&#39;world&#39;, 
-                          regions = &quot;Mexico&quot;, 
-                          plot = FALSE, 
-                          fill = TRUE))
+<pre class="r"><code>mx_border &lt;- st_as_sf(maps::map(&#39;world&#39;, 
+                                regions = &quot;Mexico&quot;, 
+                                plot = FALSE, 
+                                fill = TRUE))
 
 mx_national_parks &lt;- st_read(here(&quot;data&quot;, &quot;anpmx&quot;, &quot;anpmx.shp&quot;)) %&gt;%
   select(ID_ANP,

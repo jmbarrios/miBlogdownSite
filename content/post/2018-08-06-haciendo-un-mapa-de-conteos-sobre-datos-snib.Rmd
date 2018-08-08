@@ -1,5 +1,5 @@
 ---
-title: Haciendo un mapa de conteos sobre datos SNIB
+title: Haciendo un mapa de conteos de datos del SNIB
 author: Juan M Barrios
 date: '2018-08-06'
 slug: haciendo-un-mapa-de-conteos-sobre-datos-snib
@@ -16,15 +16,15 @@ knitr::opts_chunk$set(collapse = TRUE)
 library(here)
 ```
 
-En esta ocasión nuestro objetivo será el de generar un mapa de densidad de 
+En esta ocasión nuestro objetivo es generar un mapa de densidad de 
 ocurrencias usando los datos del [SNIB] pare esto otra vez usaremos nuestros
 datos de ejemplares de 
 [mamíferos](http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip) descargados 
 desde el [Geoportal]. 
 
 Primero generaremos un _raster_ sobre México que nos servirá como base para 
-hacer el análisis. Lo primero que vamos a hacer será obtener los datos 
-geográficos necesarios para hacer el _raster_. Un _raster_ no es mas que generar 
+hacer el análisis. Para esto tenemos que obtener los datos 
+geográficos necesarios para hacer dicho _raster_. Un _raster_ consiste en generar 
 una malla sobre una región de la tierra donde cada cuadrito, _pixel_, de la malla se le 
 asigna un valor. La resolución del _raster_ es el _área_ de cada cuadro, en este
 ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.
@@ -40,10 +40,10 @@ library(raster)
 library(rasterVis)
 library(RColorBrewer)
 
-mx_border <- st_as_sf(map('world', 
-                          regions = "Mexico", 
-                          plot = FALSE, 
-                          fill = TRUE))
+mx_border <- st_as_sf(maps::map('world', 
+                                regions = "Mexico", 
+                                plot = FALSE, 
+                                fill = TRUE))
 
 mx_border %>% st_crs()
 ```

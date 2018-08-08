@@ -1,5 +1,5 @@
 ---
-title: Haciendo un mapa de conteos sobre datos SNIB
+title: Haciendo un mapa de conteos de datos del SNIB
 author: Juan M Barrios
 date: '2018-08-06'
 slug: haciendo-un-mapa-de-conteos-sobre-datos-snib
@@ -13,14 +13,14 @@ tags:
 
 
 
-<p>En esta ocasión nuestro objetivo será el de generar un mapa de densidad de
+<p>En esta ocasión nuestro objetivo es generar un mapa de densidad de
 ocurrencias usando los datos del <a href="http://www.snib.mx/">SNIB</a> pare esto otra vez usaremos nuestros
 datos de ejemplares de
 <a href="http://www.snib.mx/ejemplares/mamiferos.201807.csv.zip">mamíferos</a> descargados
 desde el <a href="http://geoportal.conabio.gob.mx/">Geoportal</a>.</p>
 <p>Primero generaremos un <em>raster</em> sobre México que nos servirá como base para
-hacer el análisis. Lo primero que vamos a hacer será obtener los datos
-geográficos necesarios para hacer el <em>raster</em>. Un <em>raster</em> no es mas que generar
+hacer el análisis. Para esto tenemos que obtener los datos
+geográficos necesarios para hacer dicho <em>raster</em>. Un <em>raster</em> consiste en generar
 una malla sobre una región de la tierra donde cada cuadrito, <em>pixel</em>, de la malla se le
 asigna un valor. La resolución del <em>raster</em> es el <em>área</em> de cada cuadro, en este
 ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.</p>
@@ -60,10 +60,10 @@ library(rasterVis)
 ##     layer
 library(RColorBrewer)
 
-mx_border &lt;- st_as_sf(map(&#39;world&#39;, 
-                          regions = &quot;Mexico&quot;, 
-                          plot = FALSE, 
-                          fill = TRUE))
+mx_border &lt;- st_as_sf(maps::map(&#39;world&#39;, 
+                                regions = &quot;Mexico&quot;, 
+                                plot = FALSE, 
+                                fill = TRUE))
 
 mx_border %&gt;% st_crs()
 ## Coordinate Reference System:
@@ -146,7 +146,7 @@ mx_raster &lt;- rasterize(as(mammals_data, &quot;Spatial&quot;),
                        fun = &quot;count&quot;)
 proc.time() - ptm
 ##    user  system elapsed 
-##   5.657   0.003   5.676</code></pre>
+##   6.594   0.000   6.619</code></pre>
 <p>Por útimo graficaremos el resultado.</p>
 <pre class="r"><code>colr &lt;- colorRampPalette(brewer.pal(41, &#39;Spectral&#39;))
 ## Warning in brewer.pal(41, &quot;Spectral&quot;): n too large, allowed maximum for palette Spectral is 11

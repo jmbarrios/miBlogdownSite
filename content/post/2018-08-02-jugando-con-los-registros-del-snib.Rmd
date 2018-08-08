@@ -123,10 +123,10 @@ a que  agregamos la geometría asociada a los datos también podemos ocuparla
 para hacer cosas más interesantes. 
 
 ```{r}
-mx_border <- st_as_sf(map('world', 
-                          regions = "Mexico", 
-                          plot = FALSE, 
-                          fill = TRUE))
+mx_border <- st_as_sf(maps::map('world', 
+                                regions = "Mexico", 
+                                plot = FALSE, 
+                                fill = TRUE))
 
 mx_national_parks <- st_read(here("data", "anpmx", "anpmx.shp")) %>%
   select(ID_ANP,
