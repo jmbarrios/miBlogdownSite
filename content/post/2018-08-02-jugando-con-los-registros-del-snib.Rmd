@@ -12,13 +12,8 @@ tags: ["sf"]
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE)
-library(magrittr)
 library(here)
-library(dplyr)
-library(readr)
-library(sf)
-library(ggplot2)
-library(maps)
+library(magrittr)
 ```
 
 El Sistema Nacional de Información sobre Biodiversidad de México (SNIB) es una 
@@ -61,6 +56,19 @@ en un computadora (depende de la cantidad de memoria RAM de tu equipo).
 
 En todo momento usaremos las bibliotecas: `dplyr`, `readr`, `sf`, `maps`, 
 `ggplot2` y `magrittr`. 
+
+```{r}
+library(magrittr)
+library(dplyr)
+library(readr)
+library(sf)
+library(ggplot2)
+library(maps)
+library(maptools)
+```
+
+Para leer el archivo usaremos `read_csv`, en lugar de el comando base de
+`R` ya que es más confiable.
 
 ```{r}
 mammals_data <- read_csv(file = here("data", 
@@ -182,5 +190,8 @@ snib_data_ajusco %>%
   select(idejemplar, ordenvalido, especievalida)
 ```
 
+```{r}
+sessionInfo()
+```
 
 [Geoportal]: http://geoportal.conabio.gob.mx/

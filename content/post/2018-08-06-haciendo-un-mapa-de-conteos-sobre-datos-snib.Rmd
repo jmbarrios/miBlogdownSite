@@ -13,16 +13,7 @@ tags:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE)
-library(magrittr)
 library(here)
-library(dplyr)
-library(readr)
-library(sf)
-library(ggplot2)
-library(maps)
-library(raster)
-library(rasterVis)
-library(RColorBrewer)
 ```
 
 En esta ocasión nuestro objetivo será el de generar un mapa de densidad de 
@@ -39,6 +30,16 @@ asigna un valor. La resolución del _raster_ es el _área_ de cada cuadro, en es
 ejemplo trabajaremos con un raster de resolución de 10Km x 10Km.
 
 ```{r}
+library(magrittr)
+library(dplyr)
+library(readr)
+library(sf)
+library(ggplot2)
+library(maps)
+library(raster)
+library(rasterVis)
+library(RColorBrewer)
+
 mx_border <- st_as_sf(map('world', 
                           regions = "Mexico", 
                           plot = FALSE, 
@@ -129,6 +130,10 @@ levelplot(mx_raster,
           col.regions=colr,                   
           at=seq(0, 40, len=40)) +           
   layer(sp.polygons(as(mx_border, "Spatial"), lwd = 1.5))    
+```
+
+```{r}
+sessionInfo()
 ```
 
 [SNIB]: http://www.snib.mx/

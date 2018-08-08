@@ -55,6 +55,26 @@ los registros, aunque muchas veces es demasiado grande para ser trabajado
 en un computadora (depende de la cantidad de memoria RAM de tu equipo).</p>
 <p>En todo momento usaremos las bibliotecas: <code>dplyr</code>, <code>readr</code>, <code>sf</code>, <code>maps</code>,
 <code>ggplot2</code> y <code>magrittr</code>.</p>
+<pre class="r"><code>library(magrittr)
+library(dplyr)
+## 
+## Attaching package: &#39;dplyr&#39;
+## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag
+## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union
+library(readr)
+library(sf)
+## Linking to GEOS 3.6.2, GDAL 2.3.1, proj.4 5.1.0
+library(ggplot2)
+library(maps)
+library(maptools)
+## Loading required package: sp
+## Checking rgeos availability: TRUE</code></pre>
+<p>Para leer el archivo usaremos <code>read_csv</code>, en lugar de el comando base de
+<code>R</code> ya que es más confiable.</p>
 <pre class="r"><code>mammals_data &lt;- read_csv(file = here(&quot;data&quot;, 
                                      &quot;mamiferos.201807.csv&quot;, 
                                      &quot;mamiferos.csv&quot;),
@@ -135,7 +155,7 @@ representación de las familias del orden <em>Rodentia</em> en lo datos.</p>
     coord_flip() + 
     theme_minimal() +
     labs(x = &quot;Familia&quot;, y = &quot;Conteos&quot;)</code></pre>
-<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <p>En general podríamos trabajar muchas más preguntas de este estilo pero gracias
 a que agregamos la geometría asociada a los datos también podemos ocuparla
 para hacer cosas más interesantes.</p>
@@ -164,7 +184,7 @@ ggplot() +
           aes(fill = ID_ANP), 
           show.legend = FALSE) + 
   theme_minimal()</code></pre>
-<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
 <p>Vamos a restringir nuestra atención al parque nacional
 <em>Cumbres del Ajusco</em>. Este parque nacional se encuentra en la CDMX
 y en particular existe un conejo endemico el <em>Teporingo</em>. Vamos a explorar
@@ -185,7 +205,7 @@ ggplot() +
   geom_sf(data = ajusco_national_park) +
   geom_sf(data = snib_data_ajusco, aes(colour = idejemplar), show.legend = FALSE) +
   theme_bw()</code></pre>
-<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p><img src="/post/2018-08-02-jugando-con-los-registros-del-snib_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
 <p>Además tenemos los siguientes órdenes representados,</p>
 <pre class="r"><code>snib_data_ajusco %&gt;% 
   st_set_geometry(NULL) %&gt;%
@@ -241,3 +261,42 @@ ejemplares de <em>Lagomorpha</em> se tiene que
 ##   &lt;chr&gt;                 &lt;chr&gt;       &lt;chr&gt;                      &lt;POINT [°]&gt;
 ## 1 977c83f6aa37099818e7… Lagomorpha  Romerolagus di…   (-99.25833 19.20833)
 ## 2 ee8d6d14edcec9bb6444… Lagomorpha  Romerolagus di…   (-99.25691 19.20564)</code></pre>
+<pre class="r"><code>sessionInfo()
+## R version 3.5.1 (2018-07-02)
+## Platform: x86_64-pc-linux-gnu (64-bit)
+## Running under: Arch Linux
+## 
+## Matrix products: default
+## BLAS: /usr/lib/libblas.so.3.8.0
+## LAPACK: /usr/lib/liblapack.so.3.8.0
+## 
+## locale:
+##  [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+##  [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+##  [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+##  [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+##  [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+## [11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+##  [1] bindrcpp_0.2.2 maptools_0.9-3 sp_1.3-1       maps_3.3.0    
+##  [5] ggplot2_3.0.0  sf_0.6-3       readr_1.1.1    dplyr_0.7.4   
+##  [9] magrittr_1.5   here_0.1      
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.16     plyr_1.8.4       compiler_3.5.1   pillar_1.2.2    
+##  [5] bindr_0.1.1      class_7.3-14     tools_3.5.1      digest_0.6.15   
+##  [9] lattice_0.20-35  evaluate_0.10.1  tibble_1.4.2     gtable_0.2.0    
+## [13] pkgconfig_2.0.1  rlang_0.2.0      rstudioapi_0.7   cli_1.0.0       
+## [17] DBI_1.0.0        yaml_2.1.19      blogdown_0.8     xfun_0.3        
+## [21] spData_0.2.8.3   e1071_1.6-8      withr_2.1.2      stringr_1.3.1   
+## [25] knitr_1.20       rgeos_0.3-28     fs_1.2.5         hms_0.4.2       
+## [29] classInt_0.2-3   rprojroot_1.3-2  grid_3.5.1       glue_1.2.0      
+## [33] R6_2.2.2         foreign_0.8-70   rmarkdown_1.9    bookdown_0.7    
+## [37] udunits2_0.13    scales_0.5.0     backports_1.1.2  htmltools_0.3.6 
+## [41] units_0.5-1      assertthat_0.2.0 colorspace_1.3-2 labeling_0.3    
+## [45] utf8_1.1.3       stringi_1.2.2    lazyeval_0.2.1   munsell_0.4.3   
+## [49] crayon_1.3.4</code></pre>
